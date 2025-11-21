@@ -1,6 +1,7 @@
 import sys
 import os
 import datetime
+import shutil 
 from behave.model_core import Status
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -14,10 +15,16 @@ REPORT_DIR = "reports"
 BASE_SCREENSHOT_DIR = os.path.join(REPORT_DIR, "screenshots")
 
 def before_all(context):
+    if os.path.exists(REPORT_DIR):
+        log.warning(f"Limpando o diretório de reports e evidências: {REPORT_DIR}")
+        try:
+            shutil.rmtree(REPORT_DIR)
+        except OSError as e:
+            log.error(f"Erro ao tentar remover diretório {REPORT_DIR}: {e}")
+            
     if not os.path.exists(BASE_SCREENSHOT_DIR):
         os.makedirs(BASE_SCREENSHOT_DIR)
-    if not os.path.exists(REPORT_DIR):
-        os.makedirs(REPORT_DIR)
+        log.info(f"Diretório de evidências base criado: {BASE_SCREENSHOT_DIR}")
 
 def before_scenario(context, scenario):
     
@@ -39,30 +46,20 @@ def before_scenario(context, scenario):
         raise
 
 def after_step(context, step):
-    """
-    Salva o screenshot na pasta específica do cenário e anexa ao relatório HTML.
-    """
     if hasattr(context, 'driver'):
         try:
-            # 1. Preparar nome do arquivo
             timestamp = datetime.datetime.now().strftime("%H-%M-%S")
             
-            # Limpa nome do step
             step_name_clean = "".join([c if c.isalnum() else "_" for c in step.name])[:40]
             status_label = step.status.name.upper()
             
             filename = f"{timestamp}_{status_label}_{step_name_clean}.png"
             
-            # USA A PASTA ESPECÍFICA DO CENÁRIO (criada no before_scenario)
-            # Se por algum motivo a pasta não foi criada, usa a base
             target_dir = getattr(context, 'current_scenario_dir', BASE_SCREENSHOT_DIR)
             file_path = os.path.join(target_dir, filename)
             
-            # 2. Salvar Evidência Física (Backup)
             context.driver.save_screenshot(file_path)
             
-            # 3. Anexar ao Relatório HTML (Blindado)
-            # Verifica se o método embed existe para evitar quebrar o teste se o plugin falhar
             if hasattr(context, 'embed'):
                 screenshot_bytes = context.driver.get_screenshot_as_png()
                 context.embed(mime_type="image/png", data=screenshot_bytes, caption=f"{status_label}: {step.name}")

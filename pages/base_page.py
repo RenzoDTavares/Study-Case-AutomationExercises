@@ -2,8 +2,9 @@
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.remote.webdriver import WebDriver
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import TimeoutException
 from utils.logger import get_logger 
+
 log = get_logger(__name__)
 
 class BasePage:
@@ -14,7 +15,8 @@ class BasePage:
     
     def __init__(self, driver: WebDriver):
         self.driver = driver
-        self.wait = WebDriverWait(self.driver, 15)
+        self.wait = WebDriverWait(self.driver, 15) 
+        self.base_url = "https://automationexercise.com/" 
 
     def wait_for_element(self, locator: tuple):
         """Espera até que um elemento esteja visível e o retorna."""
@@ -42,3 +44,11 @@ class BasePage:
         """Retorna o texto de um elemento após esperar por ele."""
         element = self.wait_for_element(locator)
         return element.text.strip()
+    
+    def select_from_dropdown(self, locator: tuple, value: str):
+        """Seleciona um valor de um dropdown pelo texto visível."""
+        from selenium.webdriver.support.ui import Select
+        element = self.wait_for_element(locator)
+        select = Select(element)
+        select.select_by_visible_text(value)
+        log.info(f"Selecionado '{value}' do dropdown: {locator}")
